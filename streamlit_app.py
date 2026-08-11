@@ -399,10 +399,3 @@ else:
 st.sidebar.title("App Info")
 st.sidebar.info("This app references the 'question-bank-ITIL Foundation (version 5).pdf' document.")
 st.sidebar.markdown("""
-**Instructions:**
-1. Random 40 MC questions.
-2. Submit at the end to see score.
-3. Review rationales for mistakes.
-""")
-```eof
-
