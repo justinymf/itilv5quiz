@@ -1110,6 +1110,9 @@ def start_new_quiz():
     st.session_state.q_checked = {}
     st.session_state.quiz_started = True
     st.session_state.show_results = False
+# ==========================================
+# 請將以下代碼覆蓋原本 # UI Layout 之後的所有內容
+# ==========================================
 
 # UI Layout
 st.title("📚 ITIL Foundation (Version 5) Exam Simulator")
@@ -1141,7 +1144,8 @@ else:
         pre_selected = None
         if idx in st.session_state.user_answers:
             ans_letter = st.session_state.user_answers[idx]
-            pre_selected = ord(ans_letter) - 65
+            if ans_letter != "Skipped":
+                pre_selected = ord(ans_letter) - 65
             
         choice = st.radio(
             "Select your answer:",
@@ -1154,31 +1158,47 @@ else:
         st.markdown("---")
         
         if not is_checked:
-            # Check Answer Button
-            if st.button("Check Answer / 核對答案", type="primary"):
-                if choice:
-                    # Save user's answer and mark as checked
-                    letter = chr(65 + options.index(choice))
-                    st.session_state.user_answers[idx] = letter
+            # Action Buttons Layout
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                # Check Answer Button
+                if st.button("Check Answer / 核對答案", type="primary"):
+                    if choice:
+                        # Save user's answer and mark as checked
+                        letter = chr(65 + options.index(choice))
+                        st.session_state.user_answers[idx] = letter
+                        st.session_state.q_checked[idx] = True
+                        st.rerun()
+                    else:
+                        st.warning("Please select an answer first! / 請先選擇一個答案！")
+                        
+            with col2:
+                # Show Answer Button (New!)
+                if st.button("Show Answer / 直接顯示答案"):
+                    st.session_state.user_answers[idx] = "Skipped"
                     st.session_state.q_checked[idx] = True
                     st.rerun()
-                else:
-                    st.warning("Please select an answer first! / 請先選擇一個答案！")
         else:
             # Feedback Section
-            user_letter = st.session_state.user_answers[idx]
+            user_letter = st.session_state.user_answers.get(idx)
             correct_letter = q['answer']
             
-            if user_letter == correct_letter:
-                st.success(f"✅ Correct! / 答對了！")
+            if user_letter == "Skipped":
+                st.warning("⚠️ You skipped this question. / 你選擇了直接查看答案。")
+                st.write(f"**Correct Answer:** {correct_letter}. {options[ord(correct_letter)-65]}")
+            elif user_letter == correct_letter:
+                st.success("✅ Correct! / 答對了！")
+                st.write(f"**Your Answer:** {user_letter}. {options[ord(user_letter)-65]}")
             else:
-                st.error(f"❌ Incorrect. / 答錯了。")
+                st.error("❌ Incorrect. / 答錯了。")
                 st.write(f"**Your Answer:** {user_letter}. {options[ord(user_letter)-65]}")
                 st.write(f"**Correct Answer:** {correct_letter}. {options[ord(correct_letter)-65]}")
                 
             st.info(f"**Rationale / 解釋:**\n\n{q['rationale']}")
             
             # Navigation Buttons
+            st.markdown("---")
             if idx < total_q - 1:
                 if st.button("Next Question / 下一題", type="primary"):
                     st.session_state.current_q_idx += 1
@@ -1193,13 +1213,18 @@ else:
         st.subheader("Quiz Completed! / 測驗完成！")
         score = 0
         total = len(st.session_state.current_questions)
+        skipped = 0
         
         for i, q in enumerate(st.session_state.current_questions):
-            if st.session_state.user_answers.get(i) == q['answer']:
+            ans = st.session_state.user_answers.get(i)
+            if ans == q['answer']:
                 score += 1
+            elif ans == "Skipped":
+                skipped += 1
         
         percentage = (score / total) * 100
         st.header(f"Final Score: {score} / {total} ({percentage:.1f}%)")
+        st.write(f"*(Questions Skipped: {skipped})*")
         
         if percentage >= 65:
             st.success("Congratulations! You passed the mock exam. 🎉")
@@ -1214,8 +1239,8 @@ st.sidebar.title("App Info")
 st.sidebar.info("This app references the 'question-bank-ITIL Foundation (version 5).pdf' document.")
 st.sidebar.markdown("""
 **Mode:** One-by-one (Immediate check)
-1. Read the question and select an option.
-2. Click "Check Answer".
+1. Select an option and click **"Check Answer"**.
+2. If you don't know the answer, click **"Show Answer"** to skip and learn.
 3. Read the rationale.
 4. Proceed to the next question.
 """)
