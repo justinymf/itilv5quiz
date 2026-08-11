@@ -289,111 +289,135 @@ def get_question_bank():
         }
     ]
 
-# Initialize Session State
+# Initialize Session State Variables
 if "quiz_started" not in st.session_state:
     st.session_state.quiz_started = False
 if "current_questions" not in st.session_state:
     st.session_state.current_questions = []
+if "current_q_idx" not in st.session_state:
+    st.session_state.current_q_idx = 0
 if "user_answers" not in st.session_state:
     st.session_state.user_answers = {}
-if "submitted" not in st.session_state:
-    st.session_state.submitted = False
+if "q_checked" not in st.session_state:
+    st.session_state.q_checked = {}
+if "show_results" not in st.session_state:
+    st.session_state.show_results = False
 
-# Helper functions
 def start_new_quiz():
     all_q = get_question_bank()
-    # Randomly select up to 40 questions
     num_to_pick = min(40, len(all_q))
     st.session_state.current_questions = random.sample(all_q, num_to_pick)
+    st.session_state.current_q_idx = 0
     st.session_state.user_answers = {}
+    st.session_state.q_checked = {}
     st.session_state.quiz_started = True
-    st.session_state.submitted = False
-
-def submit_quiz():
-    st.session_state.submitted = True
+    st.session_state.show_results = False
 
 # UI Layout
-st.title("📚 ITIL Foundation (Version 5) Question Bank")
+st.title("📚 ITIL Foundation (Version 5) Exam Simulator")
 st.markdown("---")
 
 if not st.session_state.quiz_started:
     st.header("Welcome to the Exam Simulator")
     st.write("This tool will randomly select **40 questions** from the ITIL Foundation v5 question bank.")
-    st.info("Ensure you understand the rationale for each answer rather than memorizing.")
+    st.info("You will answer one question at a time and see the correct answer and rationale immediately.")
     
     if st.button("Start Test / 開始測試", type="primary"):
         start_new_quiz()
         st.rerun()
 
 else:
-    if not st.session_state.submitted:
-        st.subheader("ITIL Foundation Exam Practice")
-        st.progress(len(st.session_state.user_answers) / len(st.session_state.current_questions))
+    if not st.session_state.show_results:
+        # Display Current Question
+        idx = st.session_state.current_q_idx
+        q = st.session_state.current_questions[idx]
+        total_q = len(st.session_state.current_questions)
+        is_checked = st.session_state.q_checked.get(idx, False)
         
-        # Display Questions
-        for idx, q in enumerate(st.session_state.current_questions):
-            st.markdown(f"**Question {idx + 1}:** {q['question']}")
+        st.subheader(f"Question {idx + 1} of {total_q}")
+        st.progress((idx) / total_q)
+        st.markdown(f"**{q['question']}**")
+        
+        # Determine pre-selected option if already answered
+        options = q['options']
+        pre_selected = None
+        if idx in st.session_state.user_answers:
+            ans_letter = st.session_state.user_answers[idx]
+            pre_selected = ord(ans_letter) - 65
             
-            options = q['options']
-            choice = st.radio(
-                f"Select answer for Q{idx+1}",
-                options,
-                key=f"q_{idx}",
-                index=None,
-                label_visibility="collapsed"
-            )
+        choice = st.radio(
+            "Select your answer:",
+            options,
+            index=pre_selected,
+            disabled=is_checked,
+            key=f"radio_{idx}"
+        )
+        
+        st.markdown("---")
+        
+        if not is_checked:
+            # Check Answer Button
+            if st.button("Check Answer / 核對答案", type="primary"):
+                if choice:
+                    # Save user's answer and mark as checked
+                    letter = chr(65 + options.index(choice))
+                    st.session_state.user_answers[idx] = letter
+                    st.session_state.q_checked[idx] = True
+                    st.rerun()
+                else:
+                    st.warning("Please select an answer first! / 請先選擇一個答案！")
+        else:
+            # Feedback Section
+            user_letter = st.session_state.user_answers[idx]
+            correct_letter = q['answer']
             
-            if choice:
-                letter_choice = chr(65 + options.index(choice))
-                st.session_state.user_answers[idx] = letter_choice
-            st.markdown("---")
+            if user_letter == correct_letter:
+                st.success(f"✅ Correct! / 答對了！")
+            else:
+                st.error(f"❌ Incorrect. / 答錯了。")
+                st.write(f"**Your Answer:** {user_letter}. {options[ord(user_letter)-65]}")
+                st.write(f"**Correct Answer:** {correct_letter}. {options[ord(correct_letter)-65]}")
+                
+            st.info(f"**Rationale / 解釋:**\n\n{q['rationale']}")
             
-        if st.button("Submit Exam / 提交測試", type="primary"):
-            submit_quiz()
-            st.rerun()
-            
+            # Navigation Buttons
+            if idx < total_q - 1:
+                if st.button("Next Question / 下一題", type="primary"):
+                    st.session_state.current_q_idx += 1
+                    st.rerun()
+            else:
+                if st.button("View Final Results / 查看最終成績", type="primary"):
+                    st.session_state.show_results = True
+                    st.rerun()
+                    
     else:
-        # Results Section
+        # Final Results Section
+        st.subheader("Quiz Completed! / 測驗完成！")
         score = 0
         total = len(st.session_state.current_questions)
         
-        for idx, q in enumerate(st.session_state.current_questions):
-            if st.session_state.user_answers.get(idx) == q['answer']:
+        for i, q in enumerate(st.session_state.current_questions):
+            if st.session_state.user_answers.get(i) == q['answer']:
                 score += 1
         
         percentage = (score / total) * 100
+        st.header(f"Final Score: {score} / {total} ({percentage:.1f}%)")
         
-        st.header(f"Results: {score} / {total} ({percentage:.1f}%)")
         if percentage >= 65:
-            st.success("Congratulations! You passed the mock exam.")
+            st.success("Congratulations! You passed the mock exam. 🎉")
         else:
-            st.error("You did not reach the 65% passing score. Keep studying!")
+            st.error("You did not reach the 65% passing score. Keep studying! 📖")
             
-        if st.button("Retry New Test / 再次挑戰"):
+        if st.button("Start a New Test / 重新開始新測驗", type="primary"):
             start_new_quiz()
             st.rerun()
-            
-        st.markdown("### Detailed Review / 詳細檢討")
-        
-        for idx, q in enumerate(st.session_state.current_questions):
-            user_ans = st.session_state.user_answers.get(idx, "None")
-            is_correct = user_ans == q['answer']
-            
-            with st.expander(f"Q{idx+1}: {'✅' if is_correct else '❌'} {q['question'][:100]}..."):
-                st.write(f"**Full Question:** {q['question']}")
-                st.write(f"**Your Answer:** {user_ans}")
-                st.write(f"**Correct Answer:** {q['answer']}")
-                st.markdown(f"**Rationale:** {q['rationale']}")
-                
-                st.write("**Options Reference:**")
-                for i, opt in enumerate(q['options']):
-                    st.write(f"{chr(65+i)}. {opt}")
 
 st.sidebar.title("App Info")
 st.sidebar.info("This app references the 'question-bank-ITIL Foundation (version 5).pdf' document.")
 st.sidebar.markdown("""
-**Instructions:**
-1. Random 40 MC questions.
-2. Submit at the end to see score.
-3. Review rationales for mistakes.
+**Mode:** One-by-one (Immediate check)
+1. Read the question and select an option.
+2. Click "Check Answer".
+3. Read the rationale.
+4. Proceed to the next question.
 """)
