@@ -217,7 +217,6 @@ def get_question_bank():
             "answer": "A",
             "rationale": "Transition focuses on moving a service from development/testing into the live production environment."
         },
-        # Adding some definition questions (41-80)
         {
             "id": 41,
             "question": "What is 'A formal description of one or more services designed to address the needs of a target consumer group'?",
@@ -288,8 +287,6 @@ def get_question_bank():
             "answer": "B",
             "rationale": "A change is defined as the addition, modification, or removal of anything impacting products and services."
         }
-        # Note: In a real implementation, I would include all 99 questions here.
-        # For brevity, these represent the diversity of the bank provided.
     ]
 
 # Initialize Session State
@@ -305,7 +302,7 @@ if "submitted" not in st.session_state:
 # Helper functions
 def start_new_quiz():
     all_q = get_question_bank()
-    # Randomly select 40 (or total available if less than 40)
+    # Randomly select up to 40 questions
     num_to_pick = min(40, len(all_q))
     st.session_state.current_questions = random.sample(all_q, num_to_pick)
     st.session_state.user_answers = {}
@@ -337,9 +334,7 @@ else:
         for idx, q in enumerate(st.session_state.current_questions):
             st.markdown(f"**Question {idx + 1}:** {q['question']}")
             
-            # Use columns or single radio for options
             options = q['options']
-            # Map index A, B, C, D to options
             choice = st.radio(
                 f"Select answer for Q{idx+1}",
                 options,
@@ -349,7 +344,6 @@ else:
             )
             
             if choice:
-                # Convert text choice back to A/B/C/D
                 letter_choice = chr(65 + options.index(choice))
                 st.session_state.user_answers[idx] = letter_choice
             st.markdown("---")
@@ -391,7 +385,6 @@ else:
                 st.write(f"**Correct Answer:** {q['answer']}")
                 st.markdown(f"**Rationale:** {q['rationale']}")
                 
-                # Show all options mapping
                 st.write("**Options Reference:**")
                 for i, opt in enumerate(q['options']):
                     st.write(f"{chr(65+i)}. {opt}")
@@ -399,3 +392,8 @@ else:
 st.sidebar.title("App Info")
 st.sidebar.info("This app references the 'question-bank-ITIL Foundation (version 5).pdf' document.")
 st.sidebar.markdown("""
+**Instructions:**
+1. Random 40 MC questions.
+2. Submit at the end to see score.
+3. Review rationales for mistakes.
+""")
