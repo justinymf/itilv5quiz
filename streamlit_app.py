@@ -669,7 +669,7 @@ D: Deliver is concerned with the actual provision of services to users."""
             "rationale": "This is a BL1 definition question, so no explanation is needed. Please review and memorize the definition."
         }
     ]
-        part2 = [
+    part2 = [
         {
             "id": 61,
             "question": "What is 'The addition, modification, or removal of anything that could have a direct or indirect effect on products and services.'?",
@@ -1086,7 +1086,6 @@ D: Deliver is concerned with the actual provision of services to users."""
     ]
 
     return part1 + part2
-    ]
 
 # Initialize Session State Variables
 if "quiz_started" not in st.session_state:
